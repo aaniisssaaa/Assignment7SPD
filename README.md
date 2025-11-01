@@ -1,47 +1,47 @@
-# Task Scheduler — Демонстрация паттернов и Clean Code
+# Task Scheduler — Design Patterns & Clean Code Demo
 
-Учебный проект для демонстрации шаблонов проектирования и принципов чистого кода.
+Educational project demonstrating design patterns and clean code principles.
 
-## Описание
+## Description
 
-Task Scheduler — система планирования задач с разными стратегиями упорядочивания:
-- По времени создания (FIFO)
-- По приоритету
-- По ближайшему дедлайну
+Task Scheduler — task scheduling system with different ordering strategies:
+- By creation time (FIFO)
+- By priority
+- By nearest deadline
 
-## Реализованные паттерны
+## Implemented Patterns
 
-1. **Factory** — `TaskFactory.create()` для создания задач с uuid и timestamp
-2. **Strategy** — 3 алгоритма планирования (FIFO, Priority, EarliestDue)
-3. **Repository** — абстракция хранилища данных (легко заменить на БД)
-4. **Dependency Injection** — сборка зависимостей в `compose_default()`
+1. **Factory** — `TaskFactory.create()` for creating tasks with uuid and timestamp
+2. **Strategy** — 3 scheduling algorithms (FIFO, Priority, EarliestDue)
+3. **Repository** — data storage abstraction (easy to replace with DB)
+4. **Dependency Injection** — dependency assembly in `compose_default()`
 
-## Принципы Clean Code
+## Clean Code Principles
 
-- ✅ Неизменяемые объекты (`@dataclass(frozen=True)`)
-- ✅ Одна ответственность у каждого класса (SRP)
-- ✅ Интерфейсы вместо конкретных реализаций (DIP)
-- ✅ Читаемые имена (`schedule()`, `due_datetime()`)
-- ✅ Типизация и docstrings
-- ✅ Короткие функции и методы
+- ✅ Immutable objects (`@dataclass(frozen=True)`)
+- ✅ Single responsibility per class (SRP)
+- ✅ Interfaces over concrete implementations (DIP)
+- ✅ Readable names (`schedule()`, `due_datetime()`)
+- ✅ Type hints and docstrings
+- ✅ Short functions and methods
 
-## Структура проекта
+## Project Structure
 
 ```
 asik7spd/
-├── main.py              # Весь исходный код (~190 строк)
-├── diagram.png          # UML-диаграмма классов
-└── README.md            # Этот файл
+├── main.py              # All source code (~190 lines)
+├── diagram.png          # UML class diagram
+└── README.md            # This file
 ```
 
-## Как запустить
+## How to Run
 
 ```powershell
 cd C:\Users\user\Documents\asik7spd
 python main.py
 ```
 
-**Вывод:**
+**Output:**
 ```
 Order (by priority):
 - High priority task (priority=10)
@@ -49,8 +49,22 @@ Order (by priority):
 - Low priority task (priority=0)
 ```
 
-## UML-диаграмма
+## Requirements
+
+Only standard Python libraries (uuid, datetime, abc, dataclasses) — no external dependencies.
+
+## UML Diagram
 
 ![UML Class Diagram](diagram.png)
 
-Диаграмма показывает все классы, интерфейсы и связи между компонентами системы с пояснениями паттернов.
+The diagram shows all classes, interfaces, and relationships between system components with pattern explanations.
+
+## For Presentation
+
+1. **Code** — `main.py` with comments and patterns
+2. **Diagram** — visual representation of architecture
+
+---
+
+**Author:** Educational Demo Project  
+**Date:** November 1, 2025

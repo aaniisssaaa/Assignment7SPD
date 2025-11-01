@@ -1,9 +1,9 @@
-"""Task Scheduler — демонстрация паттернов проектирования и Clean Code
+"""Task Scheduler — Design Patterns and Clean Code Demo
 
-Паттерны:
+Design Patterns:
 - Factory: TaskFactory.create()
-- Strategy: SchedulingStrategy с реализациями (FIFO, Priority, EarliestDue)
-- Repository: TaskRepository интерфейс + InMemoryTaskRepository
+- Strategy: SchedulingStrategy with implementations (FIFO, Priority, EarliestDue)
+- Repository: TaskRepository interface + InMemoryTaskRepository
 - Dependency Injection: compose_default()
 """
 
@@ -21,7 +21,7 @@ import uuid
 class Task:
     """Immutable task model.
     
-    Clean Code: неизменяемая структура, понятные поля, метод due_datetime()
+    Clean Code: immutable structure, clear fields, due_datetime() method
     """
     id: str
     name: str
@@ -30,7 +30,7 @@ class Task:
     due_in_minutes: Optional[int] = None
 
     def due_datetime(self) -> Optional[datetime]:
-        """Возвращает момент дедлайна, если он задан."""
+        """Returns the deadline datetime if set."""
         if self.due_in_minutes is None:
             return None
         return self.created_at + timedelta(minutes=self.due_in_minutes)
@@ -39,9 +39,9 @@ class Task:
 # ==================== FACTORY PATTERN ====================
 
 class TaskFactory:
-    """Factory для создания задач с удобными значениями по умолчанию.
+    """Factory for creating tasks with convenient default values.
     
-    Паттерн Factory инкапсулирует правила создания объектов.
+    Factory pattern encapsulates object creation rules.
     """
     
     @staticmethod
@@ -58,10 +58,10 @@ class TaskFactory:
 # ==================== REPOSITORY PATTERN ====================
 
 class TaskRepository(ABC):
-    """Интерфейс репозитория задач.
+    """Task repository interface.
     
-    Паттерн Repository изолирует логику доступа к данным.
-    Clean Code: минимальный интерфейс (ISP - Interface Segregation Principle).
+    Repository pattern isolates data access logic.
+    Clean Code: minimal interface (ISP - Interface Segregation Principle).
     """
     
     @abstractmethod
@@ -82,7 +82,7 @@ class TaskRepository(ABC):
 
 
 class InMemoryTaskRepository(TaskRepository):
-    """Простая in-memory реализация репозитория."""
+    """Simple in-memory repository implementation."""
     
     def __init__(self) -> None:
         self._tasks: dict[str, Task] = {}
@@ -103,9 +103,9 @@ class InMemoryTaskRepository(TaskRepository):
 # ==================== STRATEGY PATTERN ====================
 
 class SchedulingStrategy(ABC):
-    """Strategy interface: получает список задач и возвращает упорядоченный список.
+    """Strategy interface: receives task list and returns ordered list.
     
-    Паттерн Strategy позволяет менять алгоритм планирования без изменения клиента.
+    Strategy pattern allows changing scheduling algorithm without modifying client code.
     """
     
     @abstractmethod
@@ -114,21 +114,21 @@ class SchedulingStrategy(ABC):
 
 
 class FifoStrategy(SchedulingStrategy):
-    """Простейшая стратегия: по времени создания (FIFO)."""
+    """Simplest strategy: by creation time (FIFO)."""
     
     def order(self, tasks: List[Task]) -> List[Task]:
         return sorted(tasks, key=lambda t: t.created_at)
 
 
 class PriorityStrategy(SchedulingStrategy):
-    """Сортирует по убыванию приоритета, затем по времени создания."""
+    """Sorts by descending priority, then by creation time."""
     
     def order(self, tasks: List[Task]) -> List[Task]:
         return sorted(tasks, key=lambda t: (-t.priority, t.created_at))
 
 
 class EarliestDueStrategy(SchedulingStrategy):
-    """Сортирует по ближайшему дедлайну; задачи без дедлайна идут в конец."""
+    """Sorts by nearest deadline; tasks without deadlines go to the end."""
     
     def order(self, tasks: List[Task]) -> List[Task]:
         def key(t: Task):
@@ -139,25 +139,25 @@ class EarliestDueStrategy(SchedulingStrategy):
 
 
 class Scheduler:
-    """Контекст, который использует стратегию для планирования задач.
+    """Context that uses strategy for task scheduling.
     
-    Clean Code: Single Responsibility — только делегирует работу стратегии.
+    Clean Code: Single Responsibility — only delegates work to strategy.
     """
     
     def __init__(self, strategy: SchedulingStrategy) -> None:
         self._strategy = strategy
     
     def schedule(self, tasks: List[Task]) -> List[Task]:
-        """Возвращает новый список задач в порядке выполнения."""
+        """Returns new list of tasks in execution order."""
         return self._strategy.order(tasks)
 
 
 # ==================== DEPENDENCY INJECTION ====================
 
 def compose_default() -> tuple[TaskRepository, Scheduler]:
-    """Собирает приложение: InMemory репозиторий и Scheduler с PriorityStrategy.
+    """Assembles application: InMemory repository and Scheduler with PriorityStrategy.
     
-    Упрощённая dependency injection: зависимости создаются в одном месте.
+    Simplified dependency injection: dependencies created in one place.
     """
     repo = InMemoryTaskRepository()
     scheduler = Scheduler(PriorityStrategy())
@@ -167,10 +167,10 @@ def compose_default() -> tuple[TaskRepository, Scheduler]:
 # ==================== DEMO ====================
 
 def demo() -> None:
-    """Демонстрация работы системы планирования задач."""
+    """Demonstration of task scheduling system."""
     repo, scheduler = compose_default()
     
-    # Создаём задачи с разными приоритетами
+    # Create tasks with different priorities
     repo.add(TaskFactory.create("Low priority task", priority=0))
     repo.add(TaskFactory.create("High priority task", priority=10))
     repo.add(TaskFactory.create("Medium priority task", priority=5))
