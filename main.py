@@ -1,186 +1,264 @@
-"""Task Scheduler — Design Patterns and Clean Code Demo
+﻿"""Event Notification System - Observer Pattern Demo
 
-Design Patterns:
-- Factory: TaskFactory.create()
-- Strategy: SchedulingStrategy with implementations (FIFO, Priority, EarliestDue)
-- Repository: TaskRepository interface + InMemoryTaskRepository
-- Dependency Injection: compose_default()
+Design Pattern: Observer (Behavioral)
+- Subject: maintains list of observers, notifies them of state changes
+- Observer: interface for objects that should be notified
+- Concrete Observers: Logger, EmailNotifier, StatisticsCollector, AlertSystem
+
+Clean Code Principles:
+- Single Responsibility Principle (each observer has one job)
+- Open/Closed Principle (easy to add new observers without modifying Subject)
+- Interface Segregation (minimal observer interface)
+- Dependency Inversion (depend on Observer abstraction)
 """
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from datetime import datetime, timedelta
-from typing import List, Optional
-import uuid
+from datetime import datetime
+from typing import List
+from enum import Enum
 
 
-# ==================== MODEL ====================
+# ==================== EVENT MODEL ====================
+
+class EventType(Enum):
+    """Types of events in the system."""
+    USER_REGISTERED = "user_registered"
+    USER_LOGIN = "user_login"
+    ORDER_PLACED = "order_placed"
+    PAYMENT_RECEIVED = "payment_received"
+    ERROR_OCCURRED = "error_occurred"
+
 
 @dataclass(frozen=True)
-class Task:
-    """Immutable task model.
+class Event:
+    """Immutable event model.
     
-    Clean Code: immutable structure, clear fields, due_datetime() method
+    Clean Code: immutable structure, clear fields, timestamp for tracking.
     """
-    id: str
-    name: str
-    priority: int
-    created_at: datetime
-    due_in_minutes: Optional[int] = None
-
-    def due_datetime(self) -> Optional[datetime]:
-        """Returns the deadline datetime if set."""
-        if self.due_in_minutes is None:
-            return None
-        return self.created_at + timedelta(minutes=self.due_in_minutes)
+    event_type: EventType
+    user_id: str
+    data: dict
+    timestamp: datetime
 
 
-# ==================== FACTORY PATTERN ====================
+# ==================== OBSERVER PATTERN ====================
 
-class TaskFactory:
-    """Factory for creating tasks with convenient default values.
+class Observer(ABC):
+    """Observer interface.
     
-    Factory pattern encapsulates object creation rules.
-    """
-    
-    @staticmethod
-    def create(name: str, priority: int = 0, due_in_minutes: Optional[int] = None) -> Task:
-        return Task(
-            id=str(uuid.uuid4()),
-            name=name.strip(),
-            priority=priority,
-            created_at=datetime.utcnow(),
-            due_in_minutes=due_in_minutes,
-        )
-
-
-# ==================== REPOSITORY PATTERN ====================
-
-class TaskRepository(ABC):
-    """Task repository interface.
-    
-    Repository pattern isolates data access logic.
-    Clean Code: minimal interface (ISP - Interface Segregation Principle).
+    Observer pattern: objects implementing this interface will be notified
+    when events occur in the Subject.
     """
     
     @abstractmethod
-    def add(self, task: Task) -> None:
-        pass
-    
-    @abstractmethod
-    def get_all(self) -> List[Task]:
-        pass
-    
-    @abstractmethod
-    def get_by_id(self, task_id: str) -> Optional[Task]:
-        pass
-    
-    @abstractmethod
-    def remove(self, task_id: str) -> None:
+    def update(self, event: Event) -> None:
+        """Called when observed subject has new event."""
         pass
 
 
-class InMemoryTaskRepository(TaskRepository):
-    """Simple in-memory repository implementation."""
+class Subject(ABC):
+    """Subject interface (Observable).
+    
+    Maintains list of observers and notifies them of state changes.
+    """
+    
+    @abstractmethod
+    def attach(self, observer: Observer) -> None:
+        """Attach an observer."""
+        pass
+    
+    @abstractmethod
+    def detach(self, observer: Observer) -> None:
+        """Detach an observer."""
+        pass
+    
+    @abstractmethod
+    def notify(self, event: Event) -> None:
+        """Notify all observers about an event."""
+        pass
+
+
+# ==================== CONCRETE SUBJECT ====================
+
+class EventManager(Subject):
+    """Concrete Subject: manages events and notifies observers.
+    
+    Clean Code: Single Responsibility - only manages observers and notifications.
+    """
     
     def __init__(self) -> None:
-        self._tasks: dict[str, Task] = {}
+        self._observers: List[Observer] = []
     
-    def add(self, task: Task) -> None:
-        self._tasks[task.id] = task
+    def attach(self, observer: Observer) -> None:
+        if observer not in self._observers:
+            self._observers.append(observer)
+            print(f"[EventManager] Attached: {observer.__class__.__name__}")
     
-    def get_all(self) -> List[Task]:
-        return list(self._tasks.values())
+    def detach(self, observer: Observer) -> None:
+        if observer in self._observers:
+            self._observers.remove(observer)
+            print(f"[EventManager] Detached: {observer.__class__.__name__}")
     
-    def get_by_id(self, task_id: str) -> Optional[Task]:
-        return self._tasks.get(task_id)
+    def notify(self, event: Event) -> None:
+        """Notify all observers about event."""
+        for observer in self._observers:
+            observer.update(event)
     
-    def remove(self, task_id: str) -> None:
-        self._tasks.pop(task_id, None)
+    def trigger_event(self, event_type: EventType, user_id: str, data: dict) -> None:
+        """Create and broadcast event."""
+        event = Event(
+            event_type=event_type,
+            user_id=user_id,
+            data=data,
+            timestamp=datetime.utcnow()
+        )
+        print(f"\n[EventManager] Triggering: {event_type.value}")
+        self.notify(event)
 
 
-# ==================== STRATEGY PATTERN ====================
+# ==================== CONCRETE OBSERVERS ====================
 
-class SchedulingStrategy(ABC):
-    """Strategy interface: receives task list and returns ordered list.
+class LoggingObserver(Observer):
+    """Logs all events to console.
     
-    Strategy pattern allows changing scheduling algorithm without modifying client code.
+    Observer pattern: reacts to events by logging them.
     """
     
-    @abstractmethod
-    def order(self, tasks: List[Task]) -> List[Task]:
-        pass
+    def update(self, event: Event) -> None:
+        print(f"  [Logger] {event.timestamp.strftime('%H:%M:%S')} - "
+              f"{event.event_type.value} by user {event.user_id}")
 
 
-class FifoStrategy(SchedulingStrategy):
-    """Simplest strategy: by creation time (FIFO)."""
+class EmailNotifier(Observer):
+    """Sends email notifications for specific events.
     
-    def order(self, tasks: List[Task]) -> List[Task]:
-        return sorted(tasks, key=lambda t: t.created_at)
-
-
-class PriorityStrategy(SchedulingStrategy):
-    """Sorts by descending priority, then by creation time."""
-    
-    def order(self, tasks: List[Task]) -> List[Task]:
-        return sorted(tasks, key=lambda t: (-t.priority, t.created_at))
-
-
-class EarliestDueStrategy(SchedulingStrategy):
-    """Sorts by nearest deadline; tasks without deadlines go to the end."""
-    
-    def order(self, tasks: List[Task]) -> List[Task]:
-        def key(t: Task):
-            due = t.due_datetime()
-            return (due or t.created_at.replace(year=9999), t.created_at)
-        
-        return sorted(tasks, key=key)
-
-
-class Scheduler:
-    """Context that uses strategy for task scheduling.
-    
-    Clean Code: Single Responsibility — only delegates work to strategy.
+    Observer pattern: selectively reacts to important events.
     """
     
-    def __init__(self, strategy: SchedulingStrategy) -> None:
-        self._strategy = strategy
+    def __init__(self) -> None:
+        self.important_events = {
+            EventType.USER_REGISTERED,
+            EventType.ORDER_PLACED,
+            EventType.ERROR_OCCURRED
+        }
     
-    def schedule(self, tasks: List[Task]) -> List[Task]:
-        """Returns new list of tasks in execution order."""
-        return self._strategy.order(tasks)
+    def update(self, event: Event) -> None:
+        if event.event_type in self.important_events:
+            print(f"  [Email] Sending notification for {event.event_type.value} "
+                  f"to user {event.user_id}")
 
 
-# ==================== DEPENDENCY INJECTION ====================
-
-def compose_default() -> tuple[TaskRepository, Scheduler]:
-    """Assembles application: InMemory repository and Scheduler with PriorityStrategy.
+class StatisticsCollector(Observer):
+    """Collects statistics about events.
     
-    Simplified dependency injection: dependencies created in one place.
+    Observer pattern: maintains state based on observed events.
     """
-    repo = InMemoryTaskRepository()
-    scheduler = Scheduler(PriorityStrategy())
-    return repo, scheduler
+    
+    def __init__(self) -> None:
+        self.event_counts: dict[EventType, int] = {}
+    
+    def update(self, event: Event) -> None:
+        count = self.event_counts.get(event.event_type, 0)
+        self.event_counts[event.event_type] = count + 1
+        print(f"  [Stats] Event count for {event.event_type.value}: "
+              f"{self.event_counts[event.event_type]}")
+    
+    def get_report(self) -> str:
+        """Generate statistics report."""
+        lines = ["\n=== Statistics Report ==="]
+        for event_type, count in self.event_counts.items():
+            lines.append(f"  {event_type.value}: {count} times")
+        return "\n".join(lines)
+
+
+class AlertSystem(Observer):
+    """Monitors for critical events and raises alerts.
+    
+    Observer pattern: reacts to specific conditions.
+    """
+    
+    def update(self, event: Event) -> None:
+        if event.event_type == EventType.ERROR_OCCURRED:
+            severity = event.data.get('severity', 'low')
+            print(f"  [ALERT] Critical error detected! Severity: {severity}")
+        elif event.event_type == EventType.PAYMENT_RECEIVED:
+            amount = event.data.get('amount', 0)
+            if amount > 1000:
+                print(f"  [ALERT] Large payment received: ${amount}")
 
 
 # ==================== DEMO ====================
 
 def demo() -> None:
-    """Demonstration of task scheduling system."""
-    repo, scheduler = compose_default()
+    """Demonstration of Observer pattern."""
     
-    # Create tasks with different priorities
-    repo.add(TaskFactory.create("Low priority task", priority=0))
-    repo.add(TaskFactory.create("High priority task", priority=10))
-    repo.add(TaskFactory.create("Medium priority task", priority=5))
+    print("=== Observer Pattern Demo: Event Notification System ===\n")
     
-    tasks = repo.get_all()
-    ordered = scheduler.schedule(tasks)
+    # Create Subject (Observable)
+    event_manager = EventManager()
     
-    print("Order (by priority):")
-    for t in ordered:
-        print(f"- {t.name} (priority={t.priority})")
+    # Create Observers
+    logger = LoggingObserver()
+    email_notifier = EmailNotifier()
+    stats_collector = StatisticsCollector()
+    alert_system = AlertSystem()
+    
+    # Attach observers to subject
+    print("--- Attaching Observers ---")
+    event_manager.attach(logger)
+    event_manager.attach(email_notifier)
+    event_manager.attach(stats_collector)
+    event_manager.attach(alert_system)
+    
+    # Trigger various events
+    print("\n--- Triggering Events ---")
+    
+    event_manager.trigger_event(
+        EventType.USER_REGISTERED,
+        user_id="user_001",
+        data={"email": "alice@example.com"}
+    )
+    
+    event_manager.trigger_event(
+        EventType.USER_LOGIN,
+        user_id="user_001",
+        data={"ip": "192.168.1.1"}
+    )
+    
+    event_manager.trigger_event(
+        EventType.ORDER_PLACED,
+        user_id="user_001",
+        data={"order_id": "ORD123", "items": 3}
+    )
+    
+    event_manager.trigger_event(
+        EventType.PAYMENT_RECEIVED,
+        user_id="user_001",
+        data={"amount": 1500, "method": "credit_card"}
+    )
+    
+    event_manager.trigger_event(
+        EventType.ERROR_OCCURRED,
+        user_id="system",
+        data={"severity": "high", "message": "Database connection failed"}
+    )
+    
+    # Demonstrate detaching an observer
+    print("\n--- Detaching Email Notifier ---")
+    event_manager.detach(email_notifier)
+    
+    event_manager.trigger_event(
+        EventType.USER_LOGIN,
+        user_id="user_002",
+        data={"ip": "192.168.1.2"}
+    )
+    
+    # Display statistics
+    print(stats_collector.get_report())
+    
+    print("\n=== Demo Complete ===")
 
 
 if __name__ == "__main__":

@@ -1,37 +1,51 @@
-# Task Scheduler — Design Patterns & Clean Code Demo
+﻿# Event Notification System - Observer Pattern Demo
 
 Educational project demonstrating design patterns and clean code principles.
 
 ## Description
 
-Task Scheduler — task scheduling system with different ordering strategies:
-- By creation time (FIFO)
-- By priority
-- By nearest deadline
+Event Notification System - event-driven system where multiple observers react to events in real-time:
+- Logging all events
+- Sending email notifications for important events
+- Collecting statistics
+- Raising alerts for critical situations
 
-## Implemented Patterns
+## Implemented Pattern: Observer (Behavioral)
 
-1. **Factory** — `TaskFactory.create()` for creating tasks with uuid and timestamp
-2. **Strategy** — 3 scheduling algorithms (FIFO, Priority, EarliestDue)
-3. **Repository** — data storage abstraction (easy to replace with DB)
-4. **Dependency Injection** — dependency assembly in `compose_default()`
+The Observer pattern defines a one-to-many dependency between objects. When the Subject (Observable) changes state, all registered Observers are automatically notified.
+
+### Components:
+
+1. **Subject (EventManager)** - maintains list of observers, notifies them of events
+2. **Observer Interface** - defines `update()` method for all observers
+3. **Concrete Observers**:
+   - **LoggingObserver** - logs all events to console
+   - **EmailNotifier** - sends notifications for important events
+   - **StatisticsCollector** - tracks event counts
+   - **AlertSystem** - monitors critical events and raises alerts
+
+### Benefits:
+- Loose coupling between Subject and Observers
+- Easy to add new observers without modifying Subject
+- Observers can be attached/detached dynamically at runtime
 
 ## Clean Code Principles
 
-- ✅ Immutable objects (`@dataclass(frozen=True)`)
-- ✅ Single responsibility per class (SRP)
-- ✅ Interfaces over concrete implementations (DIP)
-- ✅ Readable names (`schedule()`, `due_datetime()`)
-- ✅ Type hints and docstrings
-- ✅ Short functions and methods
+-  Immutable objects (`Event` with `frozen=True`)
+-  Single Responsibility Principle (each observer has one job)
+-  Open/Closed Principle (open for extension, closed for modification)
+-  Interface Segregation (minimal Observer interface)
+-  Dependency Inversion (depend on abstractions, not concrete classes)
+-  Type hints and docstrings
+-  Readable names (`attach()`, `notify()`, `update()`)
 
 ## Project Structure
 
 ```
 asik7spd/
-├── main.py              # All source code (~190 lines)
-├── diagram.png          # UML class diagram
-└── README.md            # This file
+ main.py              # Complete implementation (~230 lines)
+ diagram.png          # UML class diagram
+ README.md            # This file
 ```
 
 ## How to Run
@@ -43,28 +57,46 @@ python main.py
 
 **Output:**
 ```
-Order (by priority):
-- High priority task (priority=10)
-- Medium priority task (priority=5)
-- Low priority task (priority=0)
+=== Observer Pattern Demo: Event Notification System ===
+
+--- Attaching Observers ---
+[EventManager] Attached: LoggingObserver
+[EventManager] Attached: EmailNotifier
+[EventManager] Attached: StatisticsCollector
+[EventManager] Attached: AlertSystem
+
+--- Triggering Events ---
+
+[EventManager] Triggering: user_registered
+  [Logger] 14:56:39 - user_registered by user user_001
+  [Email] Sending notification for user_registered to user user_001
+  [Stats] Event count for user_registered: 1
+
+[EventManager] Triggering: payment_received
+  [Logger] 14:56:39 - payment_received by user user_001
+  [Stats] Event count for payment_received: 1
+  [ALERT] Large payment received: $1500
+
+--- Detaching Email Notifier ---
+[EventManager] Detached: EmailNotifier
+
+=== Statistics Report ===
+  user_registered: 1 times
+  user_login: 2 times
+  order_placed: 1 times
+  payment_received: 1 times
+  error_occurred: 1 times
 ```
+
+## Assignment Requirements
+
+ **Design Pattern**: Observer pattern with Subject and multiple Observers  
+ **Clean Code**: Immutability, SRP, OCP, ISP, DIP, type hints, docstrings  
+ **UML Diagram**: Class diagram showing Observer pattern structure  
+ **Real-World Application**: Event notification system (web apps, monitoring)  
+ **Extensibility**: Easy to add new observers without modifying Subject
 
 ## Requirements
 
-Only standard Python libraries (uuid, datetime, abc, dataclasses) — no external dependencies.
-
-## UML Diagram
-
-![UML Class Diagram](diagram.png)
-
-The diagram shows all classes, interfaces, and relationships between system components with pattern explanations.
-
-## For Presentation
-
-1. **Code** — `main.py` with comments and patterns
-2. **Diagram** — visual representation of architecture
-
----
-
-**Author:** Educational Demo Project  
-**Date:** November 1, 2025
+- Python 3.11+
+- No external dependencies (standard library only)
